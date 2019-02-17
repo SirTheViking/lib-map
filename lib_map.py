@@ -11,13 +11,12 @@ import time
 
 
 
+""" For extra arguments someday
 
 if len(sys.argv) < 3:
 	print(f"[i] Usage:\tpython {os.path.basename(__file__)} \"tmdb_api_key\" \"path_to_movie_library\"")
 	exit(0)
-
-
-
+"""
 
 search_url 		= "https://api.themoviedb.org/3/search/{search}?api_key={key}&query={query}"
 img_url 		= "http://api.themoviedb.org/3/{search}/{imdbid}/images?api_key={key}"
@@ -25,8 +24,9 @@ config_url 		= "https://api.themoviedb.org/3/configuration?api_key={key}"
 
 container_dir 	= "/.Info"
 
-key 			= sys.argv[1]
-path 			= sys.argv[2]
+key 			= "{REPLACE_WITH_API_KEY}"
+path 			= "{REPLACE_WITH_FULL_PATH_TO_LIBRARY}"
+
 url 			= config_url.format(key=key)
 req 			= requests.get(url)
 config 			= req.json()
