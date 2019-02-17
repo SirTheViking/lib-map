@@ -195,13 +195,14 @@ def getMovieData():
 
 		print(f"\t[/] Looking at the movie '{name}")
 
-		query 	= urllib.parse.quote_plus(name)
-		req 	= requests.get(search_url.format(search="movie", key=key, query=query))
-		data 	= req.json()["results"][0]
-
-		if len(data) == 0:
+		query 		= urllib.parse.quote_plus(name)
+		req 		= requests.get(search_url.format(search="movie", key=key, query=query))
+		try:
+			data 	= req.json()["results"][0]
+		except:
 			print(f"\t\t[?] Didn't get any data back for: '{name}'")
 			continue
+			
 
 
 
@@ -281,13 +282,14 @@ def getSeriesData():
 			continue
 
 		
-		query 	= urllib.parse.quote_plus(filename)
-		req 	= requests.get(search_url.format(search="tv", key=key, query=query))
-		data 	= req.json()["results"][0]
-
-		if len(data) == 0:
+		query 		= urllib.parse.quote_plus(filename)
+		req 		= requests.get(search_url.format(search="tv", key=key, query=query))
+		try:
+			data 	= req.json()["results"][0]
+		except:
 			print(f"\t[?] Didn't get any data back for: '{filename}'")
 			continue
+			
 
 		no_space_title 	= filename.replace(" ", "_")
 
