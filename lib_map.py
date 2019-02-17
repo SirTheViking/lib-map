@@ -22,8 +22,6 @@ search_url 		= "https://api.themoviedb.org/3/search/{search}?api_key={key}&query
 img_url 		= "http://api.themoviedb.org/3/{search}/{imdbid}/images?api_key={key}"
 config_url 		= "https://api.themoviedb.org/3/configuration?api_key={key}"
 
-container_dir 	= "/.Info"
-
 key 			= "{REPLACE_WITH_API_KEY}"
 path 			= "{REPLACE_WITH_FULL_PATH_TO_LIBRARY}"
 
@@ -34,7 +32,8 @@ config 			= req.json()
 request_pause 	= 5 # Time between api requests in seconds
 
 base_url 		= config["images"]["secure_base_url"]
-save_directory 	= "/.Info/images/"
+container_dir 	= "/.Info"
+save_directory 	= f"{container_dir}/images/"
 
 library = {
 	"movies": [],
@@ -111,7 +110,6 @@ def toFile(filename, data):
 
 
 
-
 def toImageFile(filename, data):
 	"""
 	Write byte data to an image file
@@ -122,7 +120,6 @@ def toImageFile(filename, data):
 	"""
 	with open(filename, "wb") as w:
 		w.write(data)
-
 
 
 
@@ -179,6 +176,9 @@ def getMovieData():
 		Function then takes the retrieved data and add it 
 		to movies.json
 	"""
+	# replace with space
+	to_replace 	= [".", ":", "_", "\\", "/", "*", "?", "\"", "<", ">", "|", "!", ",", "+", "-", "&", "%"]
+
 	print("[i] Looking at movie files")
 
 	for filename in os.listdir(path):
@@ -191,18 +191,59 @@ def getMovieData():
 			continue
 
 		
-		name 	= filename.split(".")[0]
 
-		print(f"\t[/] Looking at the movie '{name}")
+		name 		= filename.split(".")[0]
+		# Clean the file name of any weird characters
+		clean_name	= name.lower()
+		clean_name = clean_name.replace("'", "")
 
-		query 		= urllib.parse.quote_plus(name)
+		for ch in to_replace:
+			if ch in clean_name:
+				clean_name = clean_name.replace(ch, " ")
+				
+
+		clean_name = " ".join(clean_name.split()) # For 2:22
+		
+		print(f"\t[/] Looking at the movie '{name}'")
+
+		query 		= urllib.parse.quote_plus(clean_name)
 		req 		= requests.get(search_url.format(search="movie", key=key, query=query))
-		try:
-			data 	= req.json()["results"][0]
-		except:
-			print(f"\t\t[?] Didn't get any data back for: '{name}'")
-			continue
-			
+
+		data 		= req.json()["results"]
+
+		if len(data) <= 1:
+			data = data[0]
+		else:
+			for result in data:				
+				# Clean the name from the search of any weird characters
+				clean_data 	= result["title"].lower()
+				clean_name = clean_name.replace("'", "")
+				
+				for ch in to_replace:
+					if ch in clean_data:
+						clean_data = clean_data.replace(ch, " ")
+
+				clean_data = " ".join(clean_data.split())
+
+				print(f"WELL?!?!? - {clean_name} - {clean_data}")
+				# Compare
+				if len(clean_name) > len(clean_data):
+					if clean_data in clean_name:
+						print("[------] data in name")
+						data = result
+						print(f"IT MATCHES??? - {clean_name} - {clean_data}")
+						break				
+				
+				if clean_name in clean_data:
+					print("[------] name in data")
+					data = result
+					print(f"IT MATCHES??? - {clean_name} - {clean_data}")
+					break				
+				
+			if len(data) == 0:
+				print("[!!] No data received!!")
+				print("TODO: ADD ACTUAL 'CRASH DATA'")
+				continue
 
 
 
@@ -215,7 +256,7 @@ def getMovieData():
 			"release_date"	: data["release_date"],
 			"images"		: {},
 			"movie_path"	: f"/{filename}",
-			"file_type"		: filename.split(".")[1]	# filename -> "movie.filetype"
+			"file_type"		: filename.split(".")[1]
 		}
 
 
@@ -226,17 +267,19 @@ def getMovieData():
 		}
 		
 
-		print(f"\t\t- Downloading images (backdrops & posters) for '{name}'\n\n")
+		print(f"\t\t- Downloading images (backdrops & posters) for '{name}'")
 
 		for (k, url) in abs_image_paths.items():
+			print(f"\t\t\t\\ Image link: {abs_image_paths[k]}\n\n")
+
 			no_space_title 	= name.replace(" ", "_")
 
 			req 			= requests.get(url)
 			filetype 		= req.headers["content-type"].split("/")[-1]
 
-			image_name 		= f"{no_space_title}_{k}.{filetype}"	# Builds to -> "movie_title_poster.filetype"
-			file_path 		= f"{path}{save_directory}{k}s/movies/{image_name}" # Builds to -> "{library}/.Info/images/posters/movies/image.filetype"
-			partial_path	= f"{save_directory}{k}s/movies/{image_name}" # Builds to -> "/.Info/images/posters/movies/image.filetype"
+			image_name 		= f"{no_space_title}_{k}.{filetype}"
+			file_path 		= f"{path}{save_directory}{k}s/movies/{image_name}"
+			partial_path	= f"{save_directory}{k}s/movies/{image_name}"
 
 
 			movie_dict["images"][f"{k}_path"] 			= abs_image_paths[k]
@@ -244,12 +287,13 @@ def getMovieData():
 			movie_dict["images"][f"{k}_filetype"]		= filetype
 
 			toImageFile(file_path, req.content)
+			time.sleep(1) # TODO:
 				
 		
 		library["movies"].append(movie_dict)
 
 		print(f"[...] Sleeping for {request_pause} seconds\n\n")
-		time.sleep(request_pause) # Can be removed if it's really necessary
+		time.sleep(request_pause)
 
 
 
@@ -298,15 +342,15 @@ def getSeriesData():
 		seasons = {}
 
 		print(f"\t\t[+] Looking at {filename}'s directory")
-		# Gather the season information
 		for idx, s in enumerate(os.listdir(os.path.join(path, filename))):
 			
 			if os.path.isfile(os.path.join(path, filename, s)):
 				print(f"\t\t\t- Ignoring {s} in {filename} root directory")
+				
 				continue
 			
-			
-			season_index += 1
+			else:
+				season_index += 1
 			
 
 			print(f"\t\t\t[i] Looking at '{filename}' - Season {season_index}")
@@ -314,6 +358,8 @@ def getSeriesData():
 
 			req 		 	= requests.get(season_img_url.format(imdbid=imdb_id, nr=season_index, key=key))
 			season_poster 	= req.json()["posters"][0]
+
+			time.sleep(1) # TODO:
 
 			# Count episodes
 			episode_count 		= 0
@@ -343,16 +389,16 @@ def getSeriesData():
 			req 			= requests.get(poster_path)
 			filetype 		= req.headers["content-type"].split("/")[-1]
 
-			image_name 		= f"{no_space_title}_Season_{season_index}.{filetype}" # Builds to -> "series_title_Season_4.filetype"
-			file_path 		= f"{path}{save_directory}posters/series/{image_name}" # Builds to -> "library/.Info/images/posters/series/image.filetype"
-			partial_path	= f"{save_directory}posters/series/{image_name}" # Builds to -> "/.Info/images/posters/series/image.filetype"
+			image_name 		= f"{no_space_title}_Season_{season_index}.{filetype}"
+			file_path 		= f"{path}{save_directory}posters/series/{image_name}"
+			partial_path	= f"{save_directory}posters/series/{image_name}"
 
 			seasons[season_index]["local_poster_path"] = partial_path
 
 			print(f"\t\t\t\t- Saving poster at {file_path}")
 			toImageFile(file_path, req.content)
 
-			season_index = 0
+			time.sleep(1) # TODO:
 			
 
 
@@ -371,8 +417,7 @@ def getSeriesData():
 		}
 
 		print(f"\t\t[i] Downloading {len(backdrops)} backdrops for '{filename}' - All Seasons\n\n")
-		
-		# Replace the default backdrops data with more custom one
+
 		for idx, backdrop in enumerate(series_dict["backdrops"]):
 			file_path 		= base_url + "original" + backdrop["file_path"]
 			width 			= backdrop["width"]
@@ -381,9 +426,9 @@ def getSeriesData():
 			req 			= requests.get(file_path)
 			filetype 		= req.headers["content-type"].split("/")[-1]
 
-			image_name 		= f"{no_space_title}_backdrop_{idx}.{filetype}" # Builds to -> "series_name_backdrop_20.filetype"
-			file_path 		= f"{path}{save_directory}backdrops/series/{image_name}" # Builds to -> "library/.Info/images/backdrops/series/image.filetype"
-			partial_path 	= f"{save_directory}backdrops/series/{image_name}" # Builds to -> "/.Info/images/backdrops/series/image.filetype"
+			image_name 		= f"{no_space_title}_backdrop_{idx}.{filetype}"
+			file_path 		= f"{path}{save_directory}backdrops/series/{image_name}"
+			partial_path 	= f"{save_directory}backdrops/series/{image_name}"
 
 			backdrops[idx] = {
 				"file_path"			: file_path,
@@ -394,6 +439,7 @@ def getSeriesData():
 			}
 
 			toImageFile(file_path, req.content)
+			time.sleep(1) # TODO:
 
 
 		series_path = os.path.join(path, filename)
