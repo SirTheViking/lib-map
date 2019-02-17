@@ -277,7 +277,6 @@ def getSeriesData():
 			seasons[season_index] = {
 				"poster_path"		: poster_path,
 				"ep_amount"			: episode_count,
-				"local_poster_path"	: "TODO: Save image",
 				"season_path"		: f"/{filename}/Season_{season_index}"
 			}
 
