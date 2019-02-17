@@ -211,7 +211,7 @@ def getMovieData():
 
 		data 		= req.json()["results"]
 
-		if len(data) <= 1:
+		if len(data) == 1:
 			data = data[0]
 		else:
 			for result in data:				
@@ -225,19 +225,14 @@ def getMovieData():
 
 				clean_data = " ".join(clean_data.split())
 
-				print(f"WELL?!?!? - {clean_name} - {clean_data}")
 				# Compare
 				if len(clean_name) > len(clean_data):
 					if clean_data in clean_name:
-						print("[------] data in name")
 						data = result
-						print(f"IT MATCHES??? - {clean_name} - {clean_data}")
 						break				
 				
 				if clean_name in clean_data:
-					print("[------] name in data")
 					data = result
-					print(f"IT MATCHES??? - {clean_name} - {clean_data}")
 					break				
 				
 			if len(data) == 0:
