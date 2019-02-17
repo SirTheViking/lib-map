@@ -80,6 +80,14 @@ genres = {
 
 
 def readIgnored():
+	"""
+	Read all the lines from the .ignore file 
+	and add them to a list that can be checked 
+	periodically from other functions
+
+	Returns:
+		list: The list filled with all lines from the file
+	"""
 	with open(".ignore", "r") as to_ignore:
 		lines = []
 		for line in to_ignore:
@@ -91,18 +99,41 @@ def readIgnored():
 
 
 def toFile(filename, data):
+	"""
+	Write text data to a text file
+
+	Args:
+		filename: The path of the file to write to
+		data	: The data to be written to the file
+	"""
 	with open(filename, "w+", encoding="utf-8") as f:
 		json.dump(data, f, indent=4)
 
 
 
+
 def toImageFile(filename, data):
+	"""
+	Write byte data to an image file
+
+	Args:
+		filename: The path to the file to write to
+		data	: The data to be written to the file
+	"""
 	with open(filename, "wb") as w:
 		w.write(data)
 
 
 
+
 def createDirectory(dirname):
+	"""
+	Check if a directory already exists, if it doesn't
+	create a new directory
+
+	Args:
+		dirname: The name that will be given to the directory
+	"""
 	if not os.path.exists(dirname):
 		print(f"[i] Creating directory @ {dirname}")
 		os.mkdir(dirname)
@@ -112,6 +143,13 @@ def createDirectory(dirname):
 
 
 def createMainDirectory(dirname):
+	"""
+	Create the main directory with it's subdirectories if 
+	it doesn't already exist
+
+	Args:
+		dirname: The name that will be given to the directory
+	"""
 	subfolders = ["/movies", "/series"]
 
 	if not os.path.exists(dirname):
@@ -132,7 +170,15 @@ def createMainDirectory(dirname):
 
 
 def getMovieData():
+	"""
+		Loop through the library and check each file/directory.
+		Ignore directories and only take care of movie files.
+		Gather data about the movies from TMDb's API such as:
+		posters, backdrops, release dates, overview, details.
 
+		Function then takes the retrieved data and add it 
+		to movies.json
+	"""
 	print("[i] Looking at movie files")
 
 	for filename in os.listdir(path):
@@ -168,7 +214,7 @@ def getMovieData():
 			"release_date"	: data["release_date"],
 			"images"		: {},
 			"movie_path"	: f"/{filename}",
-			"file_type"		: filename.split(".")[1]
+			"file_type"		: filename.split(".")[1]	# filename -> "movie.filetype"
 		}
 
 
@@ -187,9 +233,9 @@ def getMovieData():
 			req 			= requests.get(url)
 			filetype 		= req.headers["content-type"].split("/")[-1]
 
-			image_name 		= f"{no_space_title}_{k}.{filetype}"
-			file_path 		= f"{path}{save_directory}{k}s/movies/{image_name}"
-			partial_path	= f"{save_directory}{k}s/movies/{image_name}"
+			image_name 		= f"{no_space_title}_{k}.{filetype}"	# Builds to -> "movie_title_poster.filetype"
+			file_path 		= f"{path}{save_directory}{k}s/movies/{image_name}" # Builds to -> "{library}/.Info/images/posters/movies/image.filetype"
+			partial_path	= f"{save_directory}{k}s/movies/{image_name}" # Builds to -> "/.Info/images/posters/movies/image.filetype"
 
 
 			movie_dict["images"][f"{k}_path"] 			= abs_image_paths[k]
@@ -202,7 +248,7 @@ def getMovieData():
 		library["movies"].append(movie_dict)
 
 		print(f"[...] Sleeping for {request_pause} seconds\n\n")
-		time.sleep(request_pause)
+		time.sleep(request_pause) # Can be removed if it's really necessary
 
 
 
@@ -211,6 +257,15 @@ def getMovieData():
 
 
 def getSeriesData():
+	"""
+		Look through the library and take care of all the
+		directories while ignoring all files. While assuming
+		that directories are TV - Shows the function will
+		gather data about the Show from the TMDb API such as:
+		poster, backdrops, titles, season posters... and so on.
+
+		Function then takes the data and adds it to series.json
+	"""
 	season_img_url 	= "http://api.themoviedb.org/3/tv/{imdbid}/season/{nr}/images?api_key={key}"
 	
 	print("[i] Looking at series directories")
@@ -241,15 +296,15 @@ def getSeriesData():
 		seasons = {}
 
 		print(f"\t\t[+] Looking at {filename}'s directory")
+		# Gather the season information
 		for idx, s in enumerate(os.listdir(os.path.join(path, filename))):
 			
 			if os.path.isfile(os.path.join(path, filename, s)):
 				print(f"\t\t\t- Ignoring {s} in {filename} root directory")
-				
 				continue
 			
-			else:
-				season_index += 1
+			
+			season_index += 1
 			
 
 			print(f"\t\t\t[i] Looking at '{filename}' - Season {season_index}")
@@ -286,9 +341,9 @@ def getSeriesData():
 			req 			= requests.get(poster_path)
 			filetype 		= req.headers["content-type"].split("/")[-1]
 
-			image_name 		= f"{no_space_title}_Season_{season_index}.{filetype}"
-			file_path 		= f"{path}{save_directory}posters/series/{image_name}"
-			partial_path	= f"{save_directory}posters/series/{image_name}"
+			image_name 		= f"{no_space_title}_Season_{season_index}.{filetype}" # Builds to -> "series_title_Season_4.filetype"
+			file_path 		= f"{path}{save_directory}posters/series/{image_name}" # Builds to -> "library/.Info/images/posters/series/image.filetype"
+			partial_path	= f"{save_directory}posters/series/{image_name}" # Builds to -> "/.Info/images/posters/series/image.filetype"
 
 			seasons[season_index]["local_poster_path"] = partial_path
 
@@ -314,7 +369,8 @@ def getSeriesData():
 		}
 
 		print(f"\t\t[i] Downloading {len(backdrops)} backdrops for '{filename}' - All Seasons\n\n")
-
+		
+		# Replace the default backdrops data with more custom one
 		for idx, backdrop in enumerate(series_dict["backdrops"]):
 			file_path 		= base_url + "original" + backdrop["file_path"]
 			width 			= backdrop["width"]
@@ -323,9 +379,9 @@ def getSeriesData():
 			req 			= requests.get(file_path)
 			filetype 		= req.headers["content-type"].split("/")[-1]
 
-			image_name 		= f"{no_space_title}_backdrop_{idx}.{filetype}"
-			file_path 		= f"{path}{save_directory}backdrops/series/{image_name}"
-			partial_path 	= f"{save_directory}backdrops/series/{image_name}"
+			image_name 		= f"{no_space_title}_backdrop_{idx}.{filetype}" # Builds to -> "series_name_backdrop_20.filetype"
+			file_path 		= f"{path}{save_directory}backdrops/series/{image_name}" # Builds to -> "library/.Info/images/backdrops/series/image.filetype"
+			partial_path 	= f"{save_directory}backdrops/series/{image_name}" # Builds to -> "/.Info/images/backdrops/series/image.filetype"
 
 			backdrops[idx] = {
 				"file_path"			: file_path,
