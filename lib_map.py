@@ -3,7 +3,6 @@ import os
 import requests
 import sys
 import urllib
-import re
 import json
 import fnmatch
 import time
@@ -96,6 +95,10 @@ def toFile(filename, data):
 		json.dump(data, f, indent=4)
 
 
+
+def toImageFile(filename, data):
+	with open(filename, "wb") as w:
+		w.write(data)
 
 
 
@@ -193,8 +196,7 @@ def getMovieData():
 			movie_dict["images"][f"local_{k}_path"] 	= partial_path
 			movie_dict["images"][f"{k}_filetype"]		= filetype
 
-			with open(file_path, "wb") as w:
-				w.write(req.content)
+			toImageFile(file_path, req.content)
 				
 		
 		library["movies"].append(movie_dict)
@@ -291,9 +293,8 @@ def getSeriesData():
 
 			seasons[season_index]["local_poster_path"] = partial_path
 
-			with open(file_path, "wb") as w:
-				print(f"\t\t\t\t- Saving poster at {file_path}")
-				w.write(req.content)
+			print(f"\t\t\t\t- Saving poster at {file_path}")
+			toImageFile(file_path, req.content)
 
 			season_index = 0
 			
@@ -335,8 +336,7 @@ def getSeriesData():
 				"file_type"			: filetype,
 			}
 
-			with open(file_path, "wb") as w:
-				w.write(req.content)
+			toImageFile(file_path, req.content)
 
 
 		series_path = os.path.join(path, filename)
