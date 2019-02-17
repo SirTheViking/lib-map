@@ -203,7 +203,6 @@ def getMovieData():
 
 		print(f"[...] Sleeping for {request_pause} seconds\n\n")
 		time.sleep(request_pause)
-		break
 
 
 
@@ -346,7 +345,6 @@ def getSeriesData():
 
 		print(f"[...] Sleeping for {request_pause} seconds\n\n")
 		time.sleep(request_pause)
-		break
 
 
 
